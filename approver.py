@@ -46,7 +46,7 @@ def add_to_crontab():
     script_path = os.path.abspath(__file__)
 
     # The cron job to be added
-    cron_job = f"* * * * * GITLAB_ACCESS_TOKEN={token} {sys.executable} {script_path}\n"
+    cron_job = f"* * * * * GITLAB_ACCESS_TOKEN={token} {sys.executable} {script_path} >> {log_path} 2>&1\n"
 
     # Get the current crontab
     try:
