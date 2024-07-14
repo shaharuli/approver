@@ -27,7 +27,9 @@ def get_pending_mrs():
     if response.status_code != 200:
         logger.error(f"Error getting pending merge requests: {data['message']}")
         return []
-    mr_details = [dict(id=res["iid"], author=res["author"]["name"]) for res in data]
+    # Get local user to avoid trying to approve your own merge requests
+    local_user = get_local_git_user()
+    mr_details = [dict(id=res["iid"], author=res["author"]["name"]) for res in data if res["author"]["name"] != local_user]
     logger.info(f"Found {len(mr_details)} pending merge requests")
     return mr_details
 
@@ -66,6 +68,15 @@ def add_to_crontab():
         logger.info(f"Cron job added: {cron_job.strip()}")
     else:
         logger.info("Cron job already exists.")
+
+
+def get_local_git_user():
+    try:
+        res = subprocess.check_output(["git", "config", "user.name"])
+        return res.decode().strip()
+    except Exception as e:
+        logger.error(f"Failed to get local git user: {e}")
+        return ""
 
 
 def main():
