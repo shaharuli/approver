@@ -3,6 +3,7 @@ import os
 import requests
 import subprocess
 import sys
+from logging.handlers import TimedRotatingFileHandler
 
 GITLAB_LABEL = "totally-human-approved"
 GET_URL = f"https://git.vastdata.com/api/v4/projects/3/merge_requests/?labels={GITLAB_LABEL}&state=opened&per_page=100"
@@ -10,12 +11,11 @@ APPROVE_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/{iid}/a
 token = os.getenv("GITLAB_ACCESS_TOKEN")
 
 log_path = os.path.join(os.path.dirname(__file__), "approver.log")
-logging.basicConfig(filename=log_path,
-                    filemode='a',
-                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S',
-                    level=logging.INFO)
+handler = TimedRotatingFileHandler(log_path, when='W0', interval=1, backupCount=2)
+handler.setFormatter(logging.Formatter('%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s'))
 logger = logging.getLogger('logger')
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def get_pending_mrs():
