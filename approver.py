@@ -13,7 +13,7 @@ log_path = os.path.join(os.path.dirname(__file__), "approver.log")
 logging.basicConfig(filename=log_path,
                     filemode='a',
                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S',
+                    datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger('logger')
 
