@@ -5,8 +5,8 @@ import subprocess
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-GITLAB_LABEL = "totally-human-approved"
-GET_URL = f"https://git.vastdata.com/api/v4/projects/3/merge_requests/?labels={GITLAB_LABEL}&state=opened&per_page=100"
+GITLAB_EMOJI = "imp"
+GET_URL = f"https://git.vastdata.com/api/v4/projects/3/merge_requests/?my_reaction_emoji={GITLAB_EMOJI}&state=opened&per_page=100"
 APPROVE_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/{iid}/approve"
 FIGHT_CLUB_MEMBERS_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/185950"
 token = os.getenv("GITLAB_ACCESS_TOKEN")
