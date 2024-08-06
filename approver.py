@@ -8,6 +8,7 @@ from logging.handlers import TimedRotatingFileHandler
 GITLAB_LABEL = "totally-human-approved"
 GET_URL = f"https://git.vastdata.com/api/v4/projects/3/merge_requests/?labels={GITLAB_LABEL}&state=opened&per_page=100"
 APPROVE_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/{iid}/approve"
+FIGHT_CLUB_MEMBERS_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/185950"
 token = os.getenv("GITLAB_ACCESS_TOKEN")
 
 log_path = os.path.join(os.path.dirname(__file__), "approver.log")
@@ -18,7 +19,18 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-def get_pending_mrs():
+def get_club_members() -> set[str]:
+    response = requests.get(FIGHT_CLUB_MEMBERS_URL, headers={"Private-Token": token})
+    data = response.json()
+    if response.status_code != 200:
+        logger.error(f"Error getting fight club members: {data['message']}")
+        return set()
+    members = {reviewer["name"] for reviewer in data["reviewers"]}
+    logger.info(f"Found {len(members)} fight club members: {members}")
+    return members
+
+
+def get_pending_mrs() -> list[int]:
     if not token:
         logger.error("No token found in GITLAB_ACCESS_TOKEN env var")
         return []
@@ -29,18 +41,20 @@ def get_pending_mrs():
         return []
     # Get local user to avoid trying to approve your own merge requests
     local_user = get_local_git_user()
-    mr_details = [dict(id=res["iid"], author=res["author"]["name"]) for res in data if res["author"]["name"] != local_user]
-    logger.info(f"Found {len(mr_details)} pending merge requests")
-    return mr_details
+    club_members = get_club_members()
+    club_members.discard(local_user)
+    mr_ids = [res["iid"] for res in data if res["author"]["name"] in club_members]
+    logger.info(f"Found {len(mr_ids)} pending merge requests")
+    return mr_ids
 
 
-def approve_mr(mr_details):
-    url = APPROVE_URL.format(iid=mr_details["id"])
+def approve_mr(mr_id: int):
+    url = APPROVE_URL.format(iid=mr_id)
     response = requests.post(url, headers={"Private-Token": token})
     if response.status_code != 201:
-        logger.warning(f"Failed to approve merge request: {mr_details}: {response.json()}")
+        logger.warning(f"Failed to approve merge request: {mr_id}: {response.json()}")
     else:
-        logger.info(f"Approved merge request {mr_details}")
+        logger.info(f"Approved merge request {mr_id}")
 
 
 def add_to_crontab():
@@ -70,7 +84,7 @@ def add_to_crontab():
         logger.info("Cron job already exists.")
 
 
-def get_local_git_user():
+def get_local_git_user() -> str:
     try:
         res = subprocess.check_output(["git", "config", "user.name"])
         return res.decode().strip()
@@ -83,8 +97,8 @@ def main():
     logger.info("=== The Auto-Approver Awakens ===")
     add_to_crontab()
     pending_mrs = get_pending_mrs()
-    for mr_details in pending_mrs:
-        approve_mr(mr_details)
+    for mr_id in pending_mrs:
+        approve_mr(mr_id)
     logger.info("=== The Auto-Approver Sleeps ===")
 
 
