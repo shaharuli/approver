@@ -5,8 +5,7 @@ import subprocess
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-SPECIAL_MAN = "hezi.halpert"
-GET_URL = f"https://git.vastdata.com/api/v4/projects/3/merge_requests/?reviewer_username={SPECIAL_MAN}&state=opened&per_page=100"
+GET_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/?reviewer_username={reviewer}&state=opened&per_page=100"
 APPROVE_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/{iid}/approve"
 FIGHT_CLUB_MEMBERS_URL = "https://git.vastdata.com/api/v4/projects/3/merge_requests/185950"
 token = os.getenv("GITLAB_ACCESS_TOKEN")
@@ -34,15 +33,15 @@ def get_pending_mrs() -> list[int]:
     if not token:
         logger.error("No token found in GITLAB_ACCESS_TOKEN env var")
         return []
-    response = requests.get(GET_URL, headers={"Private-Token": token})
+    local_user = get_local_git_user()
+    club_members = get_club_members()
+    club_members.discard(local_user)
+    response = requests.get(GET_URL.format(reviewer=local_user), headers={"Private-Token": token})
     data = response.json()
     if response.status_code != 200:
         logger.error(f"Error getting pending merge requests: {data['message']}")
         return []
     # Get local user to avoid trying to approve your own merge requests
-    local_user = get_local_git_user()
-    club_members = get_club_members()
-    club_members.discard(local_user)
     mr_ids = [res["iid"] for res in data if res["author"]["name"] in club_members]
     logger.info(f"Found {len(mr_ids)} pending merge requests")
     return mr_ids
@@ -86,8 +85,8 @@ def add_to_crontab():
 
 def get_local_git_user() -> str:
     try:
-        res = subprocess.check_output(["git", "config", "user.name"])
-        return res.decode().strip()
+        res = subprocess.check_output(["git", "config", "user.email"])
+        return res.decode().strip().split("@")[0]
     except Exception as e:
         logger.error(f"Failed to get local git user: {e}")
         return ""

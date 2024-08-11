@@ -3,7 +3,7 @@ pip3 install requests
 GITLAB_ACCESS_TOKEN env var with your gitlab token
 
 Description:
-This script will approve for you any open MRs that have sir Hezi Halpert as a reviewer. With multiple developers running it we can achieve a neverending storm of approvals for our merge requests.
+This script will approve for you any open MRs that you as a reviewer. With multiple developers running it we can achieve a neverending storm of approvals for our merge requests.
 Just run the script on your machine and make sure to modify the desired MRs.
 
 All you need to do is run the script once manually and it will add itself to crontab to run every minute
